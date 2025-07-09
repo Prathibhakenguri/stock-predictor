@@ -6,17 +6,16 @@ import pandas_ta as ta
 
 def get_stock_data(ticker):
     print(f"📥 Downloading data for: {ticker}")
-    df = yf.download(ticker, period="10y", auto_adjust=True)
-
+    df = yf.download(ticker, period="10y", auto_adjust=False)
     if df.empty:
         raise ValueError("No data fetched from yfinance for ticker: " + ticker)
 
     print(f"📊 Raw data rows: {len(df)}")
+    print(f"📋 Columns fetched: {df.columns.tolist()}")  # Add this for debug
 
-    # Flatten columns if OHLC multi-index
     df.columns = [col if isinstance(col, str) else col[0] for col in df.columns]
 
-    # Add 13+ indicators (more diverse and proven to improve model accuracy)
+    # === Indicators
     try:
         df.ta.rsi(length=14, append=True)
         df.ta.macd(append=True)
@@ -34,7 +33,6 @@ def get_stock_data(ticker):
     except Exception as e:
         print("⚠️ Indicator error:", e)
 
-    # Rename indicators for consistency with model
     rename_map = {
         'RSI_14': 'RSI',
         'MACD_12_26_9': 'MACD',
@@ -54,7 +52,6 @@ def get_stock_data(ticker):
     }
     df.rename(columns=rename_map, inplace=True)
 
-    # Drop rows with missing values due to indicator calculations
     df.dropna(inplace=True)
 
     print(f"✅ Rows after indicators & cleanup: {len(df)}")
@@ -63,6 +60,7 @@ def get_stock_data(ticker):
         raise ValueError("Data is empty after computing indicators and cleaning.")
 
     return df
+
 
 # Test mode for development
 if __name__ == "__main__":
